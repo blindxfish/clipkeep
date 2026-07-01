@@ -1,6 +1,10 @@
 using System.Windows;
+using System.Windows.Threading;
 using ClipForge.App.Clipboard;
+using ClipForge.App.Hotkeys;
+using ClipForge.App.Interop;
 using ClipForge.App.ViewModels;
+using ClipForge.Core.Models;
 using ClipForge.Core.Classification;
 using ClipForge.Core.Security;
 using ClipForge.Core.Services;
@@ -22,8 +26,13 @@ public partial class App : Application
 {
     private ServiceProvider? _services;
     private ClipboardCaptureCoordinator? _coordinator;
+    private HotkeyService? _hotkeys;
+    private QuickPasteWindow? _quickPaste;
     private TaskbarIcon? _trayIcon;
     private MainWindow? _mainWindow;
+
+    // Window that had focus when Quick Paste opened; the paste target.
+    private IntPtr _pasteTarget;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -40,10 +49,38 @@ public partial class App : Application
         _coordinator = _services.GetRequiredService<ClipboardCaptureCoordinator>();
         _coordinator.Start();
 
+        _quickPaste = _services.GetRequiredService<QuickPasteWindow>();
+        _quickPaste.EntryChosen += OnQuickPasteEntryChosen;
+
+        _hotkeys = _services.GetRequiredService<HotkeyService>();
+        _hotkeys.QuickPasteRequested += (_, _) => OpenQuickPaste();
+        _hotkeys.Start();
+
         _mainWindow = _services.GetRequiredService<MainWindow>();
         _trayIcon = BuildTrayIcon();
 
         _mainWindow.Show();
+    }
+
+    private void OpenQuickPaste()
+    {
+        // Remember the app the user was in so we can paste back into it.
+        _pasteTarget = ForegroundPaster.CaptureForeground();
+        _quickPaste?.ShowAtCursor();
+    }
+
+    private void OnQuickPasteEntryChosen(object? sender, ClipEntry entry)
+    {
+        if (entry.Content is not { } content) return;
+
+        // Put the clip on the clipboard without re-capturing our own write.
+        _coordinator?.SuppressNextChange();
+        System.Windows.Clipboard.SetText(content);
+
+        // Let the popup fully close and focus settle before restoring + pasting.
+        var target = _pasteTarget;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background,
+            new Action(() => ForegroundPaster.PasteInto(target)));
     }
 
     private static ServiceProvider BuildServices()
@@ -59,8 +96,11 @@ public partial class App : Application
         services.AddSingleton<ForegroundWindowTracker>();
         services.AddSingleton<ClipboardListener>();
         services.AddSingleton<ClipboardCaptureCoordinator>();
+        services.AddSingleton<HotkeyService>();
         services.AddSingleton<MainViewModel>();
+        services.AddSingleton<QuickPasteViewModel>();
         services.AddSingleton<MainWindow>();
+        services.AddSingleton<QuickPasteWindow>();
 
         return services.BuildServiceProvider();
     }
@@ -72,6 +112,10 @@ public partial class App : Application
         var open = new System.Windows.Controls.MenuItem { Header = "Open ClipForge" };
         open.Click += (_, _) => ShowMainWindow();
         menu.Items.Add(open);
+
+        var quickPaste = new System.Windows.Controls.MenuItem { Header = "Quick Paste  (Ctrl+Shift+V)" };
+        quickPaste.Click += (_, _) => OpenQuickPaste();
+        menu.Items.Add(quickPaste);
 
         var pause = new System.Windows.Controls.MenuItem { Header = "Pause Monitoring", IsCheckable = true };
         pause.Click += (_, _) =>
@@ -108,6 +152,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _trayIcon?.Dispose();
+        _hotkeys?.Dispose();
         _coordinator?.Dispose();
         _services?.Dispose();
         base.OnExit(e);
