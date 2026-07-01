@@ -20,6 +20,18 @@
     <UseWPF>true</UseWPF>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Assets\ClipForge.ico</ApplicationIcon>
+
+    <!-- Distribution identity -->
+    <AssemblyName>ClipForge</AssemblyName>
+    <Product>ClipForge</Product>
+    <Company>ClipForge</Company>
+    <Authors>ClipForge</Authors>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Copyright>Copyright © 2026</Copyright>
+    <Description>Local-first Windows clipboard manager.</Description>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

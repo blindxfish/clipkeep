@@ -430,6 +430,9 @@ test-results/
 # on Windows, which would exclude the entire project. Re-include it explicitly.
 !/src/ClipForge.App/
 
+# Build/publish output and generated installer (large binaries).
+/dist/
+
 # content below from: https://github.com/github/gitignore/blob/main/Global/macOS.gitignore
 # General
 .DS_Store
