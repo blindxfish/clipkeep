@@ -86,6 +86,9 @@
                                     <TextBlock Text="  ★" Foreground="Gold" FontSize="11"
                                                Visibility="{Binding Favorite, Converter={StaticResource BoolToVis}}"/>
                                 </StackPanel>
+                                <Image Source="{Binding ThumbnailPath, Converter={StaticResource PathToImage}}"
+                                       MaxHeight="70" HorizontalAlignment="Left" Margin="0,4,0,2"
+                                       Visibility="{Binding ThumbnailPath, Converter={StaticResource StrToVis}}"/>
                                 <TextBlock Text="{Binding Content}" Foreground="{StaticResource Fg}"
                                            TextTrimming="CharacterEllipsis" MaxHeight="40"
                                            TextWrapping="Wrap"/>
@@ -104,6 +107,9 @@
                     <StackPanel DataContext="{Binding SelectedEntry}">
                         <TextBlock Text="{Binding Type}" Foreground="{StaticResource Accent}"
                                    FontWeight="Bold" FontSize="13"/>
+                        <Image Source="{Binding ThumbnailPath, Converter={StaticResource PathToImage}}"
+                               MaxHeight="240" HorizontalAlignment="Left" Margin="0,8"
+                               Visibility="{Binding ThumbnailPath, Converter={StaticResource StrToVis}}"/>
                         <ScrollViewer MaxHeight="260" Margin="0,8" VerticalScrollBarVisibility="Auto">
                             <TextBox Text="{Binding Content, Mode=OneWay}" IsReadOnly="True"
                                      TextWrapping="Wrap" Background="Transparent" BorderThickness="0"

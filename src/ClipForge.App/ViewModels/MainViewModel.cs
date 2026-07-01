@@ -2,8 +2,11 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.IO;
+using System.Windows.Media.Imaging;
 using ClipForge.App.Clipboard;
 using ClipForge.App.Services;
+using ClipForge.App.Storage;
 using ClipForge.Core.Models;
 using ClipForge.Core.Services;
 using ClipForge.Core.Settings;
@@ -22,6 +25,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ClipboardCaptureCoordinator _coordinator;
     private readonly ISettingsService _settings;
     private readonly IDialogService _dialogs;
+    private readonly ImageStore _imageStore;
 
     public ObservableCollection<ClipEntry> Entries { get; } = new();
 
@@ -46,12 +50,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IClipRepository repository,
         ClipboardCaptureCoordinator coordinator,
         ISettingsService settings,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        ImageStore imageStore)
     {
         _repository = repository;
         _coordinator = coordinator;
         _settings = settings;
         _dialogs = dialogs;
+        _imageStore = imageStore;
         _coordinator.EntryStored += OnEntryStored;
     }
 
@@ -84,9 +90,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void CopySelected()
     {
-        if (SelectedEntry?.Content is not { } content) return;
+        if (SelectedEntry is not { } entry) return;
+
+        if (entry.Type == ClipType.Image)
+        {
+            CopyImageToClipboard(entry);
+            return;
+        }
+
+        if (entry.Content is not { } content) return;
         _coordinator.SuppressNextChange();
         WpfClipboard.SetText(content);
+    }
+
+    private void CopyImageToClipboard(ClipEntry entry)
+    {
+        var image = _repository.GetImage(entry.Id);
+        if (image is null || !File.Exists(image.FilePath)) return;
+
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.UriSource = new Uri(image.FilePath);
+        bitmap.EndInit();
+
+        _coordinator.SuppressNextChange();
+        WpfClipboard.SetImage(bitmap);
     }
 
     [RelayCommand]
@@ -107,6 +136,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (_settings.Current.ConfirmBeforeDelete &&
             !_dialogs.Confirm("Delete this clipboard entry?", "ClipForge"))
             return;
+
+        // Remove image files before the row (cascade drops the images record).
+        if (entry.Type == ClipType.Image && _repository.GetImage(entry.Id) is { } image)
+            _imageStore.DeleteFiles(image);
 
         _repository.Delete(entry.Id);
         Entries.Remove(entry);

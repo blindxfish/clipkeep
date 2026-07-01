@@ -5,5 +5,7 @@
     <Application.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <conv:NullToVisibilityConverter x:Key="NullToVis"/>
+        <conv:StringToVisibilityConverter x:Key="StrToVis"/>
+        <conv:PathToImageConverter x:Key="PathToImage"/>
     </Application.Resources>
 </Application>

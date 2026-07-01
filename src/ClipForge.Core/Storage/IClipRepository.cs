@@ -20,6 +20,21 @@ public interface IClipRepository
 
     ClipEntry? GetById(long id);
 
+    /// <summary>Look up an entry by its content hash, or null if none exists.</summary>
+    ClipEntry? GetByHash(string contentHash);
+
+    /// <summary>Bump copy_count and last_copied/updated on an existing entry.</summary>
+    void TouchDuplicate(long id, DateTimeOffset when);
+
+    /// <summary>
+    /// Insert an image entry plus its <c>images</c> row atomically. The bitmap must
+    /// already be on disk; only paths/metadata are persisted here.
+    /// </summary>
+    ClipEntry InsertImage(ClipEntry entry, ImageRecord image);
+
+    /// <summary>Image metadata for an entry, or null if it isn't an image.</summary>
+    ImageRecord? GetImage(long entryId);
+
     void SetFavorite(long id, bool favorite);
 
     void Delete(long id);

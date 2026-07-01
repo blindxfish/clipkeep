@@ -18,4 +18,10 @@ public sealed class ClipEntry
     public DateTimeOffset LastCopiedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Thumbnail path for image entries, populated by list queries for display.
+    /// Not a column on clipboard_entries; null for non-images.
+    /// </summary>
+    public string? ThumbnailPath { get; set; }
 }

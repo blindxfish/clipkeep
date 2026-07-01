@@ -4,6 +4,7 @@ using ClipForge.App.Clipboard;
 using ClipForge.App.Hotkeys;
 using ClipForge.App.Interop;
 using ClipForge.App.Services;
+using ClipForge.App.Storage;
 using ClipForge.App.ViewModels;
 using ClipForge.Core.Models;
 using ClipForge.Core.Classification;
@@ -125,6 +126,7 @@ public partial class App : Application
         services.AddSingleton<ISensitiveContentDetector, SensitiveContentDetector>();
         services.AddSingleton<ClipboardStorageService>();
         services.AddSingleton<RetentionService>();
+        services.AddSingleton<ImageStore>();
         services.AddSingleton<IDialogService, MessageBoxDialogService>();
         services.AddSingleton<ForegroundWindowTracker>();
         services.AddSingleton<ClipboardListener>();

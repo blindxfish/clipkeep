@@ -79,15 +79,20 @@ public sealed class ClipRepository : IClipRepository
         {
             // Join against the FTS index; MATCH ranks results.
             cmd.CommandText = """
-                SELECT e.* FROM clipboard_entries e
+                SELECT e.*, i.thumbnail_path AS thumb_path FROM clipboard_entries e
                 JOIN clipboard_fts f ON f.rowid = e.id
+                LEFT JOIN images i ON i.entry_id = e.id
                 WHERE clipboard_fts MATCH $match
                 """;
             cmd.Parameters.AddWithValue("$match", BuildMatch(query.Search!));
         }
         else
         {
-            cmd.CommandText = "SELECT e.* FROM clipboard_entries e WHERE 1=1";
+            cmd.CommandText = """
+                SELECT e.*, i.thumbnail_path AS thumb_path FROM clipboard_entries e
+                LEFT JOIN images i ON i.entry_id = e.id
+                WHERE 1=1
+                """;
         }
 
         if (query.Type is { } t)
@@ -110,7 +115,11 @@ public sealed class ClipRepository : IClipRepository
         var results = new List<ClipEntry>();
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
-            results.Add(Map(reader));
+        {
+            var entry = Map(reader);
+            entry.ThumbnailPath = Nullable(reader, "thumb_path");
+            results.Add(entry);
+        }
         return results;
     }
 
@@ -122,6 +131,101 @@ public sealed class ClipRepository : IClipRepository
         cmd.Parameters.AddWithValue("$id", id);
         using var reader = cmd.ExecuteReader();
         return reader.Read() ? Map(reader) : null;
+    }
+
+    public ClipEntry? GetByHash(string contentHash)
+    {
+        using var conn = _db.OpenConnection();
+        return FindByHash(conn, contentHash);
+    }
+
+    public void TouchDuplicate(long id, DateTimeOffset when)
+    {
+        using var conn = _db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            UPDATE clipboard_entries
+            SET copy_count = copy_count + 1, last_copied_at = $when, updated_at = $when
+            WHERE id = $id;
+            """;
+        cmd.Parameters.AddWithValue("$when", Iso(when));
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
+    public ClipEntry InsertImage(ClipEntry entry, ImageRecord image)
+    {
+        using var conn = _db.OpenConnection();
+        using var tx = conn.BeginTransaction();
+
+        using (var ins = conn.CreateCommand())
+        {
+            ins.Transaction = tx;
+            ins.CommandText = """
+                INSERT INTO clipboard_entries
+                    (type, content, content_hash, source_app, source_process, window_title,
+                     favorite, copy_count, first_copied_at, last_copied_at, created_at, updated_at)
+                VALUES
+                    ($type, $content, $hash, $app, $proc, $title,
+                     $fav, $count, $first, $last, $created, $updated);
+                SELECT last_insert_rowid();
+                """;
+            ins.Parameters.AddWithValue("$type", TypeToDb(entry.Type));
+            ins.Parameters.AddWithValue("$content", (object?)entry.Content ?? DBNull.Value);
+            ins.Parameters.AddWithValue("$hash", entry.ContentHash);
+            ins.Parameters.AddWithValue("$app", (object?)entry.SourceApp ?? DBNull.Value);
+            ins.Parameters.AddWithValue("$proc", (object?)entry.SourceProcess ?? DBNull.Value);
+            ins.Parameters.AddWithValue("$title", (object?)entry.WindowTitle ?? DBNull.Value);
+            ins.Parameters.AddWithValue("$fav", entry.Favorite ? 1 : 0);
+            ins.Parameters.AddWithValue("$count", entry.CopyCount);
+            ins.Parameters.AddWithValue("$first", Iso(entry.FirstCopiedAt));
+            ins.Parameters.AddWithValue("$last", Iso(entry.LastCopiedAt));
+            ins.Parameters.AddWithValue("$created", Iso(entry.CreatedAt));
+            ins.Parameters.AddWithValue("$updated", Iso(entry.UpdatedAt));
+            entry.Id = (long)ins.ExecuteScalar()!;
+        }
+
+        using (var img = conn.CreateCommand())
+        {
+            img.Transaction = tx;
+            img.CommandText = """
+                INSERT INTO images
+                    (entry_id, file_path, thumbnail_path, width, height, file_size, ocr_text)
+                VALUES ($entry, $path, $thumb, $w, $h, $size, $ocr);
+                """;
+            img.Parameters.AddWithValue("$entry", entry.Id);
+            img.Parameters.AddWithValue("$path", image.FilePath);
+            img.Parameters.AddWithValue("$thumb", (object?)image.ThumbnailPath ?? DBNull.Value);
+            img.Parameters.AddWithValue("$w", image.Width);
+            img.Parameters.AddWithValue("$h", image.Height);
+            img.Parameters.AddWithValue("$size", image.FileSize);
+            img.Parameters.AddWithValue("$ocr", (object?)image.OcrText ?? DBNull.Value);
+            img.ExecuteNonQuery();
+        }
+
+        tx.Commit();
+        return entry;
+    }
+
+    public ImageRecord? GetImage(long entryId)
+    {
+        using var conn = _db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT * FROM images WHERE entry_id = $id;";
+        cmd.Parameters.AddWithValue("$id", entryId);
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) return null;
+        return new ImageRecord
+        {
+            Id = reader.GetInt64(reader.GetOrdinal("id")),
+            EntryId = reader.GetInt64(reader.GetOrdinal("entry_id")),
+            FilePath = reader.GetString(reader.GetOrdinal("file_path")),
+            ThumbnailPath = Nullable(reader, "thumbnail_path"),
+            Width = (int)reader.GetInt64(reader.GetOrdinal("width")),
+            Height = (int)reader.GetInt64(reader.GetOrdinal("height")),
+            FileSize = reader.GetInt64(reader.GetOrdinal("file_size")),
+            OcrText = Nullable(reader, "ocr_text"),
+        };
     }
 
     public void SetFavorite(long id, bool favorite)
