@@ -426,6 +426,10 @@ test-results/
 *.dmg
 *.app
 
+# The *.app rule above matches our WPF project dir "ClipForge.App" case-insensitively
+# on Windows, which would exclude the entire project. Re-include it explicitly.
+!/src/ClipForge.App/
+
 # content below from: https://github.com/github/gitignore/blob/main/Global/macOS.gitignore
 # General
 .DS_Store
