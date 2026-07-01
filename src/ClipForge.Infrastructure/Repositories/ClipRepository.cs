@@ -143,6 +143,18 @@ public sealed class ClipRepository : IClipRepository
         cmd.ExecuteNonQuery();
     }
 
+    public int PurgeOlderThan(DateTimeOffset cutoff)
+    {
+        using var conn = _db.OpenConnection();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            DELETE FROM clipboard_entries
+            WHERE favorite = 0 AND last_copied_at < $cutoff;
+            """;
+        cmd.Parameters.AddWithValue("$cutoff", Iso(cutoff));
+        return cmd.ExecuteNonQuery();
+    }
+
     private static ClipEntry? FindByHash(SqliteConnection conn, string hash)
     {
         using var cmd = conn.CreateCommand();

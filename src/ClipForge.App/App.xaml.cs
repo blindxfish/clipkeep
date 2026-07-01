@@ -3,6 +3,7 @@ using System.Windows.Threading;
 using ClipForge.App.Clipboard;
 using ClipForge.App.Hotkeys;
 using ClipForge.App.Interop;
+using ClipForge.App.Services;
 using ClipForge.App.ViewModels;
 using ClipForge.Core.Models;
 using ClipForge.Core.Classification;
@@ -31,6 +32,7 @@ public partial class App : Application
     private QuickPasteWindow? _quickPaste;
     private TaskbarIcon? _trayIcon;
     private MainWindow? _mainWindow;
+    private DispatcherTimer? _retentionTimer;
 
     // Window that had focus when Quick Paste opened; the paste target.
     private IntPtr _pasteTarget;
@@ -47,7 +49,14 @@ public partial class App : Application
         // Ensure schema/FTS/triggers exist before anything reads or writes.
         _services.GetRequiredService<ClipDatabase>().Initialize();
 
+        // Apply retention on launch, then re-run daily while the app is open.
+        RunRetention();
+        _retentionTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(24) };
+        _retentionTimer.Tick += (_, _) => RunRetention();
+        _retentionTimer.Start();
+
         _coordinator = _services.GetRequiredService<ClipboardCaptureCoordinator>();
+        _coordinator.EntryStored += OnEntryStoredNotify;
         _coordinator.Start();
 
         _quickPaste = _services.GetRequiredService<QuickPasteWindow>();
@@ -62,7 +71,25 @@ public partial class App : Application
         _mainWindow = _services.GetRequiredService<MainWindow>();
         _trayIcon = BuildTrayIcon();
 
-        _mainWindow.Show();
+        // Respect "Start minimized to tray": launch straight to the tray.
+        if (!_services.GetRequiredService<ISettingsService>().Current.StartMinimized)
+            _mainWindow.Show();
+    }
+
+    private void RunRetention()
+    {
+        var removed = _services?.GetRequiredService<RetentionService>().RunCleanup() ?? 0;
+        if (removed > 0)
+            _services?.GetRequiredService<MainViewModel>().Refresh();
+    }
+
+    private void OnEntryStoredNotify(object? sender, StoreResult e)
+    {
+        if (!e.IsNew) return;
+        if (_services?.GetRequiredService<ISettingsService>().Current.ShowNotifications != true) return;
+
+        var preview = e.Entry.Content is { Length: > 60 } c ? c[..60] + "…" : e.Entry.Content;
+        _trayIcon?.ShowBalloonTip("Clip saved", preview ?? e.Entry.Type.ToString(), BalloonIcon.Info);
     }
 
     private void OpenQuickPaste()
@@ -97,6 +124,8 @@ public partial class App : Application
         services.AddSingleton<IClassificationService, ClassificationService>();
         services.AddSingleton<ISensitiveContentDetector, SensitiveContentDetector>();
         services.AddSingleton<ClipboardStorageService>();
+        services.AddSingleton<RetentionService>();
+        services.AddSingleton<IDialogService, MessageBoxDialogService>();
         services.AddSingleton<ForegroundWindowTracker>();
         services.AddSingleton<ClipboardListener>();
         services.AddSingleton<ClipboardCaptureCoordinator>();
@@ -172,9 +201,14 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _retentionTimer?.Stop();
         _trayIcon?.Dispose();
         _hotkeys?.Dispose();
-        _coordinator?.Dispose();
+        if (_coordinator is not null)
+        {
+            _coordinator.EntryStored -= OnEntryStoredNotify;
+            _coordinator.Dispose();
+        }
         _services?.Dispose();
         base.OnExit(e);
     }

@@ -23,4 +23,10 @@ public interface IClipRepository
     void SetFavorite(long id, bool favorite);
 
     void Delete(long id);
+
+    /// <summary>
+    /// Delete non-favorite entries last copied before <paramref name="cutoff"/>.
+    /// Favorites are never removed by retention. Returns the number deleted.
+    /// </summary>
+    int PurgeOlderThan(DateTimeOffset cutoff);
 }

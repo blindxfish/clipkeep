@@ -3,8 +3,10 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ClipForge.App.Clipboard;
+using ClipForge.App.Services;
 using ClipForge.Core.Models;
 using ClipForge.Core.Services;
+using ClipForge.Core.Settings;
 using ClipForge.Core.Storage;
 using WpfClipboard = System.Windows.Clipboard;
 
@@ -18,6 +20,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly IClipRepository _repository;
     private readonly ClipboardCaptureCoordinator _coordinator;
+    private readonly ISettingsService _settings;
+    private readonly IDialogService _dialogs;
 
     public ObservableCollection<ClipEntry> Entries { get; } = new();
 
@@ -38,10 +42,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Raised when the user asks to open Settings (handled by the app shell).</summary>
     public event EventHandler? SettingsRequested;
 
-    public MainViewModel(IClipRepository repository, ClipboardCaptureCoordinator coordinator)
+    public MainViewModel(
+        IClipRepository repository,
+        ClipboardCaptureCoordinator coordinator,
+        ISettingsService settings,
+        IDialogService dialogs)
     {
         _repository = repository;
         _coordinator = coordinator;
+        _settings = settings;
+        _dialogs = dialogs;
         _coordinator.EntryStored += OnEntryStored;
     }
 
@@ -93,6 +103,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void DeleteSelected()
     {
         if (SelectedEntry is not { } entry) return;
+
+        if (_settings.Current.ConfirmBeforeDelete &&
+            !_dialogs.Confirm("Delete this clipboard entry?", "ClipForge"))
+            return;
+
         _repository.Delete(entry.Id);
         Entries.Remove(entry);
     }

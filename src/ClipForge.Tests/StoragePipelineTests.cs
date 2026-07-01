@@ -94,6 +94,21 @@ public sealed class StoragePipelineTests : IDisposable
         Assert.Empty(_repo.Query(new ClipQuery { Search = "ephemeral" }));
     }
 
+    [Fact]
+    public void PurgeOlderThan_removes_aged_non_favorites_but_keeps_favorites()
+    {
+        var oldFav = _pipeline.Store(new ClipboardCapture { Text = "old favorite" })!;
+        var oldPlain = _pipeline.Store(new ClipboardCapture { Text = "old plain" })!;
+        _repo.SetFavorite(oldFav.Entry.Id, true);
+
+        // Purge everything older than "now + 1 day" so both entries qualify by age.
+        var removed = _repo.PurgeOlderThan(DateTimeOffset.UtcNow.AddDays(1));
+
+        Assert.Equal(1, removed);
+        Assert.NotNull(_repo.GetById(oldFav.Entry.Id));   // favorite survives
+        Assert.Null(_repo.GetById(oldPlain.Entry.Id));    // non-favorite purged
+    }
+
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
