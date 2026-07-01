@@ -21,6 +21,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ClipEntry> Entries { get; } = new();
 
+    public IReadOnlyList<ClipFilter> Filters => ClipFilter.Sidebar;
+
+    [ObservableProperty]
+    private ClipFilter _selectedFilter = ClipFilter.Sidebar[0];
+
     [ObservableProperty]
     private string _searchText = string.Empty;
 
@@ -29,6 +34,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool _isPaused;
+
+    /// <summary>Raised when the user asks to open Settings (handled by the app shell).</summary>
+    public event EventHandler? SettingsRequested;
 
     public MainViewModel(IClipRepository repository, ClipboardCaptureCoordinator coordinator)
     {
@@ -39,18 +47,29 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnSearchTextChanged(string value) => Refresh();
 
+    partial void OnSelectedFilterChanged(ClipFilter value) => Refresh();
+
     partial void OnIsPausedChanged(bool value) => _coordinator.IsPaused = value;
 
     [RelayCommand]
     public void Refresh()
     {
-        var query = new ClipQuery { Search = SearchText, Limit = 200 };
+        var query = new ClipQuery
+        {
+            Search = SearchText,
+            Type = SelectedFilter.Type,
+            FavoritesOnly = SelectedFilter.FavoritesOnly,
+            Limit = 200
+        };
         var results = _repository.Query(query);
 
         Entries.Clear();
         foreach (var entry in results)
             Entries.Add(entry);
     }
+
+    [RelayCommand]
+    private void OpenSettings() => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private void CopySelected()

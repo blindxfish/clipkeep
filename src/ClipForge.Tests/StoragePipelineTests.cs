@@ -25,7 +25,8 @@ public sealed class StoragePipelineTests : IDisposable
         var db = new ClipDatabase(paths);
         db.Initialize();
         _repo = new ClipRepository(db);
-        _pipeline = new ClipboardStorageService(_repo, new ClassificationService(), new SensitiveContentDetector());
+        var settings = new JsonSettingsService(paths);
+        _pipeline = new ClipboardStorageService(_repo, new ClassificationService(), new SensitiveContentDetector(), settings);
     }
 
     [Fact]

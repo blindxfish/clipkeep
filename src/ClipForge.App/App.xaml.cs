@@ -8,6 +8,7 @@ using ClipForge.Core.Models;
 using ClipForge.Core.Classification;
 using ClipForge.Core.Security;
 using ClipForge.Core.Services;
+using ClipForge.Core.Settings;
 using ClipForge.Core.Storage;
 using ClipForge.Infrastructure.Database;
 using ClipForge.Infrastructure.Repositories;
@@ -56,6 +57,8 @@ public partial class App : Application
         _hotkeys.QuickPasteRequested += (_, _) => OpenQuickPaste();
         _hotkeys.Start();
 
+        _services.GetRequiredService<MainViewModel>().SettingsRequested += (_, _) => OpenSettings();
+
         _mainWindow = _services.GetRequiredService<MainWindow>();
         _trayIcon = BuildTrayIcon();
 
@@ -88,6 +91,7 @@ public partial class App : Application
         var services = new ServiceCollection();
 
         services.AddSingleton(new AppPaths());
+        services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<ClipDatabase>();
         services.AddSingleton<IClipRepository, ClipRepository>();
         services.AddSingleton<IClassificationService, ClassificationService>();
@@ -101,6 +105,10 @@ public partial class App : Application
         services.AddSingleton<QuickPasteViewModel>();
         services.AddSingleton<MainWindow>();
         services.AddSingleton<QuickPasteWindow>();
+
+        // Settings dialog is transient so each open starts from a fresh working copy.
+        services.AddTransient<SettingsViewModel>();
+        services.AddTransient<SettingsWindow>();
 
         return services.BuildServiceProvider();
     }
@@ -126,6 +134,10 @@ public partial class App : Application
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
+        var settings = new System.Windows.Controls.MenuItem { Header = "Settings" };
+        settings.Click += (_, _) => OpenSettings();
+        menu.Items.Add(settings);
+
         var exit = new System.Windows.Controls.MenuItem { Header = "Exit" };
         exit.Click += (_, _) => Shutdown();
         menu.Items.Add(exit);
@@ -139,6 +151,15 @@ public partial class App : Application
         };
         icon.TrayMouseDoubleClick += (_, _) => ShowMainWindow();
         return icon;
+    }
+
+    private void OpenSettings()
+    {
+        if (_services is null) return;
+        var window = _services.GetRequiredService<SettingsWindow>();
+        if (_mainWindow is { IsVisible: true })
+            window.Owner = _mainWindow;
+        window.ShowDialog();
     }
 
     private void ShowMainWindow()

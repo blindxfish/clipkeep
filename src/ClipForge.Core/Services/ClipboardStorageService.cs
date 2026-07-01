@@ -1,6 +1,7 @@
 using ClipForge.Core.Classification;
 using ClipForge.Core.Models;
 using ClipForge.Core.Security;
+using ClipForge.Core.Settings;
 using ClipForge.Core.Storage;
 
 namespace ClipForge.Core.Services;
@@ -15,17 +16,20 @@ public sealed class ClipboardStorageService
     private readonly IClipRepository _repository;
     private readonly IClassificationService _classifier;
     private readonly ISensitiveContentDetector _sensitive;
+    private readonly ISettingsService _settings;
     private readonly Func<DateTimeOffset> _now;
 
     public ClipboardStorageService(
         IClipRepository repository,
         IClassificationService classifier,
         ISensitiveContentDetector sensitive,
+        ISettingsService settings,
         Func<DateTimeOffset>? clock = null)
     {
         _repository = repository;
         _classifier = classifier;
         _sensitive = sensitive;
+        _settings = settings;
         _now = clock ?? (() => DateTimeOffset.UtcNow);
     }
 
@@ -38,7 +42,8 @@ public sealed class ClipboardStorageService
         if (string.IsNullOrWhiteSpace(capture.Text))
             return null;
 
-        if (_sensitive.IsSensitive(capture.Text))
+        if (_settings.Current.SensitivePolicy == SensitivePolicy.DoNotSave
+            && _sensitive.IsSensitive(capture.Text))
             return null;
 
         var classification = _classifier.Classify(capture.Text);

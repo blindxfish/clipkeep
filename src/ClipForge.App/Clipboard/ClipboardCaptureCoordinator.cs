@@ -1,6 +1,6 @@
-using System.Windows;
 using ClipForge.Core.Models;
 using ClipForge.Core.Services;
+using ClipForge.Core.Settings;
 using ClipForge.Infrastructure.WindowsApi;
 using WpfClipboard = System.Windows.Clipboard;
 
@@ -16,6 +16,7 @@ public sealed class ClipboardCaptureCoordinator : IDisposable
     private readonly ClipboardListener _listener;
     private readonly ClipboardStorageService _storage;
     private readonly ForegroundWindowTracker _tracker;
+    private readonly ISettingsService _settings;
 
     private bool _paused;
     private bool _suppressNext;
@@ -23,11 +24,13 @@ public sealed class ClipboardCaptureCoordinator : IDisposable
     public ClipboardCaptureCoordinator(
         ClipboardListener listener,
         ClipboardStorageService storage,
-        ForegroundWindowTracker tracker)
+        ForegroundWindowTracker tracker,
+        ISettingsService settings)
     {
         _listener = listener;
         _storage = storage;
         _tracker = tracker;
+        _settings = settings;
     }
 
     /// <summary>Raised on the UI thread after a clip is stored (new or deduped).</summary>
@@ -60,10 +63,17 @@ public sealed class ClipboardCaptureCoordinator : IDisposable
         }
         if (_paused) return;
 
+        var settings = _settings.Current;
+        if (!settings.EnableMonitoring || !settings.MonitorText) return;
+
         var text = TryReadText();
         if (string.IsNullOrEmpty(text)) return;
 
         var source = _tracker.Capture();
+
+        // Respect the application blacklist (e.g. password managers).
+        if (settings.IsAppExcluded(source.ProcessName, source.AppName)) return;
+
         var capture = new ClipboardCapture
         {
             Text = text,
