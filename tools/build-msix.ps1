@@ -35,14 +35,13 @@ $assets   = Join-Path $pkgDir "Assets"
 $release  = Join-Path $root "dist\release"
 $logo     = Join-Path $root "src\ClipForge.App\Assets\logo.png"
 
-# Store identity (replace placeholders with Partner Center values before submitting).
+# Store identity — real values from Partner Center (Product identity page).
+# These are public identifiers embedded in the shipped manifest; safe to commit.
+# Env vars still override for local test builds.
 $identityName     = if ($env:MSIX_IDENTITY_NAME)     { $env:MSIX_IDENTITY_NAME }     else { "NixonSoftwareSolutions.ClipKeep" }
-$publisher        = if ($env:MSIX_PUBLISHER)         { $env:MSIX_PUBLISHER }         else { "CN=Nixon Software Solutions" }
+$publisher        = if ($env:MSIX_PUBLISHER)         { $env:MSIX_PUBLISHER }         else { "CN=6DA26F2C-F846-410E-99F5-89AEB8F6DFD6" }
 $publisherDisplay = if ($env:MSIX_PUBLISHER_DISPLAY) { $env:MSIX_PUBLISHER_DISPLAY } else { "Nixon Software Solutions" }
 $displayName      = if ($env:MSIX_DISPLAY_NAME)      { $env:MSIX_DISPLAY_NAME }      else { "ClipKeep" }
-if ($publisher -eq "CN=Nixon Software Solutions") {
-  Write-Host "  [msix] Using PLACEHOLDER identity. Replace via MSIX_* env vars before Store submission." -ForegroundColor Yellow
-}
 
 # Locate makeappx.exe from the Windows SDK.
 $pf86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
