@@ -30,6 +30,7 @@ Allow several days to a few weeks for vetting.
 Set env vars, then run `tools/build-all.ps1` — signing happens automatically.
 
 ### Azure Trusted Signing (recommended)
+Full step-by-step: **[docs/AZURE-TRUSTED-SIGNING.md](AZURE-TRUSTED-SIGNING.md)**.
 ```powershell
 $env:CLIPFORGE_SIGN = "trusted"
 $env:TS_ENDPOINT    = "https://weu.codesigning.azure.net/"   # your region
