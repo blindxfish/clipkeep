@@ -41,9 +41,11 @@ $headers = @{
 }
 
 $body = @"
-## ClipForge $Version
+## ClipKeep $Version
 
 Local-first Windows clipboard manager — stores, organizes, and searches everything you copy. No cloud, no AI, no telemetry.
+
+> ClipKeep is the app formerly branded ClipForge (the name was already taken on the Microsoft Store). Same app, same repo.
 
 ### What's new in $Version
 - **Date on every clip** — each entry now leads with the date/time it was copied.
@@ -57,9 +59,9 @@ Pick the build for your CPU. All builds are self-contained (no .NET runtime requ
 
 | Architecture | Installer | Portable |
 |---|---|---|
-| x64 (most PCs) | ``ClipForge-Setup-$Version-x64.exe`` | ``ClipForge-$Version-x64-portable.exe`` |
-| ARM64 (Surface Pro X, etc.) | ``ClipForge-Setup-$Version-arm64.exe`` | ``ClipForge-$Version-arm64-portable.exe`` |
-| x86 (32-bit) | ``ClipForge-Setup-$Version-x86.exe`` | ``ClipForge-$Version-x86-portable.exe`` |
+| x64 (most PCs) | ``ClipKeep-Setup-$Version-x64.exe`` | ``ClipKeep-$Version-x64-portable.exe`` |
+| ARM64 (Surface Pro X, etc.) | ``ClipKeep-Setup-$Version-arm64.exe`` | ``ClipKeep-$Version-arm64-portable.exe`` |
+| x86 (32-bit) | ``ClipKeep-Setup-$Version-x86.exe`` | ``ClipKeep-$Version-x86-portable.exe`` |
 
 Installers are per-user (Start Menu shortcut, uninstaller, no admin). Portables need no install — just run.
 
@@ -71,7 +73,7 @@ Made by [Nixon Software Solutions](https://nixonsolutions.org/). Free and open s
 "@
 
 # Create the release (fails clearly if the tag release already exists).
-$payload = @{ tag_name = $tag; name = "ClipForge $Version"; body = $body; draft = $false; prerelease = $false } | ConvertTo-Json
+$payload = @{ tag_name = $tag; name = "ClipKeep $Version"; body = $body; draft = $false; prerelease = $false } | ConvertTo-Json
 $release = Invoke-RestMethod -Method Post -Headers $headers -ContentType "application/json" `
   -Uri "https://api.github.com/repos/$Repo/releases" -Body $payload
 Write-Host "Created release: $($release.html_url)"

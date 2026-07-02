@@ -7,10 +7,11 @@
 ;   ISCC /DMyArch=arm64 /DMySourceExe="..\dist\portable-arm64\ClipForge.exe" installer\ClipForge.iss
 ; Output: installer\ClipForge-Setup-<version>-<arch>.exe
 
-#define MyAppName "ClipForge"
+#define MyAppName "ClipKeep"
 #define MyAppVersion "1.1.1"
 #define MyAppPublisher "Nixon Software Solutions"
 #define MyAppUrl "https://nixonsolutions.org/"
+; The published executable keeps its original file name; only the product brand changed.
 #define MyAppExeName "ClipForge.exe"
 
 ; Defaults so the script still compiles without /D overrides (x64).
@@ -35,7 +36,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 ; Per-user install — no admin elevation required for a tray utility.
 PrivilegesRequired=lowest
 OutputDir=.
-OutputBaseFilename=ClipForge-Setup-{#MyAppVersion}-{#MyArch}
+OutputBaseFilename=ClipKeep-Setup-{#MyAppVersion}-{#MyArch}
 SetupIconFile=..\src\ClipForge.App\Assets\ClipForge.ico
 Compression=lzma2/max
 SolidCompression=yes

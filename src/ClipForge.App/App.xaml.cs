@@ -148,7 +148,7 @@ public partial class App : Application
     {
         var menu = new System.Windows.Controls.ContextMenu();
 
-        var open = new System.Windows.Controls.MenuItem { Header = "Open ClipForge" };
+        var open = new System.Windows.Controls.MenuItem { Header = "Open ClipKeep" };
         open.Click += (_, _) => ShowMainWindow();
         menu.Items.Add(open);
 
@@ -175,7 +175,7 @@ public partial class App : Application
 
         var icon = new TaskbarIcon
         {
-            ToolTipText = "ClipForge",
+            ToolTipText = "ClipKeep",
             IconSource = new System.Windows.Media.Imaging.BitmapImage(
                 new Uri("pack://application:,,,/Assets/ClipForge.ico")),
             ContextMenu = menu

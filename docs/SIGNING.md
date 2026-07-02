@@ -1,6 +1,6 @@
 # Code signing & Windows trust
 
-Unsigned ClipForge builds trigger a Windows SmartScreen / "unknown publisher"
+Unsigned ClipKeep builds trigger a Windows SmartScreen / "unknown publisher"
 warning. That warning is **only** removed by Authenticode-signing the binaries
 with a code-signing certificate whose identity Windows can verify — no build
 flag or metadata field can substitute for it.
@@ -60,15 +60,15 @@ certificate expires. Requires the Windows 10/11 SDK (`signtool.exe`) for the
 
 ## Verifying a build
 ```powershell
-signtool verify /pa /v dist\release\ClipForge-Setup-1.1.0-x64.exe
-Get-FileHash dist\release\ClipForge-Setup-1.1.0-x64.exe -Algorithm SHA256
+signtool verify /pa /v dist\release\ClipKeep-Setup-1.1.1-x64.exe
+Get-FileHash dist\release\ClipKeep-Setup-1.1.1-x64.exe -Algorithm SHA256
 ```
 `build-all.ps1` also emits `dist/release/SHA256SUMS.txt` for download verification.
 
 ## Beyond signing — distributing everywhere
 
 - **Microsoft Store / winget**: publishing to the Store gives Microsoft-backed
-  trust and auto-updates; a `winget` manifest makes `winget install ClipForge`
+  trust and auto-updates; a `winget` manifest makes `winget install ClipKeep`
   work. Both still benefit from signing.
 - **SmartScreen reputation**: with OV certs, warnings fade as download volume
   accrues. EV and Trusted Signing shortcut this.

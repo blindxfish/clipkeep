@@ -54,16 +54,16 @@ foreach ($t in $targets) {
   if (-not (Test-Path $exe)) { throw "missing published exe: $exe" }
   # Sign the app exe BEFORE packaging so the installer wraps a signed binary.
   & $sign -Path $exe
-  Copy-Item $exe (Join-Path $release "ClipForge-$Version-$arch-portable.exe") -Force
+  Copy-Item $exe (Join-Path $release "ClipKeep-$Version-$arch-portable.exe") -Force
 
   Write-Host "=== Compiling installer $arch ==="
   & $iscc "/DMyArch=$arch" "/DMySourceExe=$exe" $iss | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "ISCC failed for $arch" }
 
-  $setup = Join-Path $root "installer\ClipForge-Setup-$Version-$arch.exe"
+  $setup = Join-Path $root "installer\ClipKeep-Setup-$Version-$arch.exe"
   if (-not (Test-Path $setup)) { throw "missing installer: $setup" }
   & $sign -Path $setup            # sign the installer itself
-  Copy-Item $setup (Join-Path $release "ClipForge-Setup-$Version-$arch.exe") -Force
+  Copy-Item $setup (Join-Path $release "ClipKeep-Setup-$Version-$arch.exe") -Force
 }
 
 # SHA-256 checksums so users can verify downloads.

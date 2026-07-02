@@ -200,7 +200,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (entry is null) return;
 
         if (_settings.Current.ConfirmBeforeDelete &&
-            !_dialogs.Confirm("Delete this clipboard entry?", "ClipForge"))
+            !_dialogs.Confirm("Delete this clipboard entry?", "ClipKeep"))
             return;
 
         // Remove image files before the row (cascade drops the images record).

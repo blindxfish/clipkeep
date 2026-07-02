@@ -23,7 +23,7 @@
             ProcessorArchitecture="__ARCH__" />
 
   <Properties>
-    <DisplayName>ClipForge</DisplayName>
+    <DisplayName>__DISPLAY_NAME__</DisplayName>
     <PublisherDisplayName>__PUBLISHER_DISPLAY__</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -39,7 +39,7 @@
   <Applications>
     <Application Id="ClipForge" Executable="ClipForge.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="ClipForge"
+        DisplayName="__DISPLAY_NAME__"
         Description="Local-first Windows clipboard manager. No cloud, no AI, no telemetry."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"

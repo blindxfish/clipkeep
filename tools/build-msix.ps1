@@ -11,6 +11,8 @@
     MSIX_IDENTITY_NAME     e.g. 1234NixonSoftware.ClipForge
     MSIX_PUBLISHER         e.g. CN=ABCD1234-1234-1234-1234-1234567890AB
     MSIX_PUBLISHER_DISPLAY e.g. Nixon Software Solutions
+    MSIX_DISPLAY_NAME      the reserved Store name (must match EXACTLY), e.g.
+                           "ClipForge - Clipboard Manager". Defaults to ClipForge.
 
   The Microsoft Store SIGNS the package on submission, so the .msix is produced
   unsigned. To sideload-test locally, sign it with a self-signed cert whose
@@ -34,9 +36,10 @@ $release  = Join-Path $root "dist\release"
 $logo     = Join-Path $root "src\ClipForge.App\Assets\logo.png"
 
 # Store identity (replace placeholders with Partner Center values before submitting).
-$identityName     = if ($env:MSIX_IDENTITY_NAME)     { $env:MSIX_IDENTITY_NAME }     else { "NixonSoftwareSolutions.ClipForge" }
+$identityName     = if ($env:MSIX_IDENTITY_NAME)     { $env:MSIX_IDENTITY_NAME }     else { "NixonSoftwareSolutions.ClipKeep" }
 $publisher        = if ($env:MSIX_PUBLISHER)         { $env:MSIX_PUBLISHER }         else { "CN=Nixon Software Solutions" }
 $publisherDisplay = if ($env:MSIX_PUBLISHER_DISPLAY) { $env:MSIX_PUBLISHER_DISPLAY } else { "Nixon Software Solutions" }
+$displayName      = if ($env:MSIX_DISPLAY_NAME)      { $env:MSIX_DISPLAY_NAME }      else { "ClipKeep" }
 if ($publisher -eq "CN=Nixon Software Solutions") {
   Write-Host "  [msix] Using PLACEHOLDER identity. Replace via MSIX_* env vars before Store submission." -ForegroundColor Yellow
 }
@@ -103,12 +106,13 @@ foreach ($arch in $Arch) {
     -replace '__IDENTITY_NAME__', $identityName `
     -replace '__PUBLISHER__', $publisher `
     -replace '__PUBLISHER_DISPLAY__', $publisherDisplay `
+    -replace '__DISPLAY_NAME__', $displayName `
     -replace '__VERSION__', "$Version.0" `
     -replace '__ARCH__', $arch
   Set-Content -Path (Join-Path $stage "AppxManifest.xml") -Value $manifest -Encoding UTF8
   Copy-Item $assets (Join-Path $stage "Assets") -Recurse -Force
 
-  $out = Join-Path $release "ClipForge-$Version-$arch.msix"
+  $out = Join-Path $release "ClipKeep-$Version-$arch.msix"
   & $makeappx.FullName pack /o /d $stage /p $out | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "makeappx failed for $arch" }
   Write-Host "  -> $out"
