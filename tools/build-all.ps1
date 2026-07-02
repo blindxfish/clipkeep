@@ -22,6 +22,7 @@ $root    = Split-Path $PSScriptRoot -Parent
 $proj    = Join-Path $root "src\ClipForge.App\ClipForge.App.csproj"
 $iss     = Join-Path $root "installer\ClipForge.iss"
 $release = Join-Path $root "dist\release"
+$sign    = Join-Path $PSScriptRoot "sign.ps1"
 
 $iscc = @(
   "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
@@ -51,6 +52,8 @@ foreach ($t in $targets) {
 
   $exe = Join-Path $outDir "ClipForge.exe"
   if (-not (Test-Path $exe)) { throw "missing published exe: $exe" }
+  # Sign the app exe BEFORE packaging so the installer wraps a signed binary.
+  & $sign -Path $exe
   Copy-Item $exe (Join-Path $release "ClipForge-$Version-$arch-portable.exe") -Force
 
   Write-Host "=== Compiling installer $arch ==="
@@ -59,8 +62,16 @@ foreach ($t in $targets) {
 
   $setup = Join-Path $root "installer\ClipForge-Setup-$Version-$arch.exe"
   if (-not (Test-Path $setup)) { throw "missing installer: $setup" }
+  & $sign -Path $setup            # sign the installer itself
   Copy-Item $setup (Join-Path $release "ClipForge-Setup-$Version-$arch.exe") -Force
 }
+
+# SHA-256 checksums so users can verify downloads.
+Write-Host "=== Writing checksums ==="
+$sums = Join-Path $release "SHA256SUMS.txt"
+Get-ChildItem $release -File -Filter "*.exe" | Sort-Object Name | ForEach-Object {
+  "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
+} | Set-Content -Encoding ascii $sums
 
 Write-Host "`n=== Release assets ($release) ==="
 Get-ChildItem $release -File | ForEach-Object { "{0,-44} {1,7:N1} MB" -f $_.Name, ($_.Length / 1MB) }

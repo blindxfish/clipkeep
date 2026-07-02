@@ -23,7 +23,8 @@ $root = Split-Path $PSScriptRoot -Parent
 $tag  = "v$Version"
 
 $assetDir = Join-Path $root "dist\release"
-$assets = Get-ChildItem $assetDir -File -Filter "*$Version*.exe" -ErrorAction SilentlyContinue
+$assets = Get-ChildItem $assetDir -File -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -like "*$Version*.exe" -or $_.Name -eq "SHA256SUMS.txt" }
 if (-not $assets -or $assets.Count -eq 0) {
   throw "No release assets found in $assetDir. Build them first (tools\build-all.ps1)."
 }
@@ -62,7 +63,9 @@ Pick the build for your CPU. All builds are self-contained (no .NET runtime requ
 
 Installers are per-user (Start Menu shortcut, uninstaller, no admin). Portables need no install — just run.
 
-The builds aren't code-signed, so SmartScreen may warn about an *unknown publisher* — click **More info -> Run anyway**.
+Verify your download against ``SHA256SUMS.txt`` (``Get-FileHash <file> -Algorithm SHA256``).
+
+If these builds aren't code-signed yet, SmartScreen may warn about an *unknown publisher* — click **More info -> Run anyway**.
 
 Made by [Nixon Software Solutions](https://nixonsolutions.org/). Free and open source.
 "@

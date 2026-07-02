@@ -24,12 +24,12 @@
     <!-- Distribution identity -->
     <AssemblyName>ClipForge</AssemblyName>
     <Product>ClipForge</Product>
-    <Company>ClipForge</Company>
-    <Authors>ClipForge</Authors>
+    <Company>Nixon Software Solutions</Company>
+    <Authors>Nixon Software Solutions</Authors>
     <Version>1.1.0</Version>
     <FileVersion>1.1.0.0</FileVersion>
     <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <Copyright>Copyright © 2026</Copyright>
+    <Copyright>Copyright © 2026 Nixon Software Solutions</Copyright>
     <Description>Local-first Windows clipboard manager.</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
