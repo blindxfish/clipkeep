@@ -1,13 +1,14 @@
 <#
 .SYNOPSIS
-  Create a GitHub release for ClipForge and upload the built installers.
+  Create a GitHub release for ClipForge and upload the built installers + portables.
 
 .DESCRIPTION
   Uses your existing Git credential (via `git credential fill`) to call the
   GitHub REST API — no separate token needed if you can already `git push`.
-  Run this AFTER building the assets:
-    dist\portable\ClipForge.exe          (self-contained portable exe)
-    installer\ClipForge-Setup-<ver>.exe  (Inno Setup installer)
+  Run this AFTER building the assets into dist\release\ (see tools\build-all.ps1),
+  which should contain, per architecture (x64 / x86 / arm64):
+    ClipForge-Setup-<ver>-<arch>.exe     (Inno Setup installer)
+    ClipForge-<ver>-<arch>-portable.exe  (self-contained single-file exe)
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1
@@ -21,10 +22,10 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 $tag  = "v$Version"
 
-$installer = Join-Path $root "installer\ClipForge-Setup-$Version.exe"
-$portable  = Join-Path $root "dist\portable\ClipForge.exe"
-foreach ($f in @($installer, $portable)) {
-  if (-not (Test-Path $f)) { throw "Missing asset: $f  (build it first)" }
+$assetDir = Join-Path $root "dist\release"
+$assets = Get-ChildItem $assetDir -File -Filter "*$Version*.exe" -ErrorAction SilentlyContinue
+if (-not $assets -or $assets.Count -eq 0) {
+  throw "No release assets found in $assetDir. Build them first (tools\build-all.ps1)."
 }
 
 # Pull the GitHub token from your Git credential store (same one `git push` uses).
@@ -43,18 +44,30 @@ $body = @"
 
 Local-first Windows clipboard manager — stores, organizes, and searches everything you copy. No cloud, no AI, no telemetry.
 
+### What's new in $Version
+- **Date on every clip** — each entry now leads with the date/time it was copied.
+- **Date-range filter** — a From/To picker to narrow history by day.
+- **Sort & counts** — "Newest / Oldest first" ordering plus live per-type counts in the sidebar.
+- **Dark redesign** — custom title bar, rounded cards, restyled search, sidebar, details, and Settings; thin dark scrollbars and date pickers.
+- **About section** — in Settings, with links to the project.
+
 ### Downloads
-| File | What it is |
-|---|---|
-| ``ClipForge-Setup-$Version.exe`` | Installer (Start Menu shortcut, uninstaller, per-user, no admin) |
-| ``ClipForge-$Version-portable.exe`` | Portable single file — no install, just run |
+Pick the build for your CPU. All builds are self-contained (no .NET runtime required).
 
-Both are self-contained (no .NET runtime required). The builds aren't code-signed, so SmartScreen may warn about an *unknown publisher* — click **More info -> Run anyway**.
+| Architecture | Installer | Portable |
+|---|---|---|
+| x64 (most PCs) | ``ClipForge-Setup-$Version-x64.exe`` | ``ClipForge-$Version-x64-portable.exe`` |
+| ARM64 (Surface Pro X, etc.) | ``ClipForge-Setup-$Version-arm64.exe`` | ``ClipForge-$Version-arm64-portable.exe`` |
+| x86 (32-bit) | ``ClipForge-Setup-$Version-x86.exe`` | ``ClipForge-$Version-x86-portable.exe`` |
 
-**Highlights:** clipboard capture (text + images), rule-based classification, SQLite FTS5 search, Quick Paste (Ctrl+Shift+V), favorites, sensitive-content exclusion, application blacklist, retention cleanup.
+Installers are per-user (Start Menu shortcut, uninstaller, no admin). Portables need no install — just run.
+
+The builds aren't code-signed, so SmartScreen may warn about an *unknown publisher* — click **More info -> Run anyway**.
+
+Made by [Nixon Software Solutions](https://nixonsolutions.org/). Free and open source.
 "@
 
-# Create the release (idempotent-ish: fails clearly if the tag release already exists).
+# Create the release (fails clearly if the tag release already exists).
 $payload = @{ tag_name = $tag; name = "ClipForge $Version"; body = $body; draft = $false; prerelease = $false } | ConvertTo-Json
 $release = Invoke-RestMethod -Method Post -Headers $headers -ContentType "application/json" `
   -Uri "https://api.github.com/repos/$Repo/releases" -Body $payload
@@ -66,7 +79,6 @@ function Add-Asset($path, $name) {
   Write-Host "Uploaded $name"
 }
 
-Add-Asset $installer "ClipForge-Setup-$Version.exe"
-Add-Asset $portable  "ClipForge-$Version-portable.exe"
+foreach ($a in $assets) { Add-Asset $a.FullName $a.Name }
 
 Write-Host "`nDone -> $($release.html_url)"
