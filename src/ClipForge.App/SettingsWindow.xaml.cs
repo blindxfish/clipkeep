@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Windows;
+using System.Windows.Navigation;
 using ClipForge.App.Startup;
 using ClipForge.App.ViewModels;
 
@@ -24,5 +27,18 @@ public partial class SettingsWindow : Window
             Close();
         };
         CancelButton.Click += (_, _) => Close();
+
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        if (version is not null)
+            VersionRun.Text = $"  v{version.Major}.{version.Minor}.{version.Build}";
+    }
+
+    private void CloseWindow_Click(object sender, RoutedEventArgs e) => Close();
+
+    // Open About links in the user's default browser.
+    private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 }

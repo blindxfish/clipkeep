@@ -109,6 +109,45 @@ public sealed class StoragePipelineTests : IDisposable
         Assert.Null(_repo.GetById(oldPlain.Entry.Id));    // non-favorite purged
     }
 
+    [Fact]
+    public void Query_filters_by_date_range()
+    {
+        Insert("january entry", new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
+        Insert("june entry", new DateTimeOffset(2026, 6, 15, 12, 0, 0, TimeSpan.Zero));
+
+        var febToJuly = _repo.Query(new ClipQuery
+        {
+            From = new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero),
+        });
+
+        Assert.Single(febToJuly);
+        Assert.Equal("june entry", febToJuly[0].Content);
+    }
+
+    [Fact]
+    public void Query_date_bounds_are_inclusive()
+    {
+        var when = new DateTimeOffset(2026, 3, 10, 8, 30, 0, TimeSpan.Zero);
+        Insert("boundary entry", when);
+
+        var hit = _repo.Query(new ClipQuery { From = when, To = when });
+
+        Assert.Single(hit);
+    }
+
+    private void Insert(string content, DateTimeOffset when) =>
+        _repo.Upsert(new ClipEntry
+        {
+            Type = ClipType.Text,
+            Content = content,
+            ContentHash = content,
+            FirstCopiedAt = when,
+            LastCopiedAt = when,
+            CreatedAt = when,
+            UpdatedAt = when,
+        });
+
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();

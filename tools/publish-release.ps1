@@ -13,7 +13,7 @@
   powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1
 #>
 param(
-  [string]$Version = "1.0.0",
+  [string]$Version = "1.1.0",
   [string]$Repo    = "blindxfish/clipforge"
 )
 

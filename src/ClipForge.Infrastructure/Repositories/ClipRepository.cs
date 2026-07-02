@@ -102,13 +102,25 @@ public sealed class ClipRepository : IClipRepository
         }
         if (query.FavoritesOnly)
             wheres.Add("e.favorite = 1");
+        if (query.From is { } from)
+        {
+            wheres.Add("e.last_copied_at >= $from");
+            cmd.Parameters.AddWithValue("$from", Iso(from));
+        }
+        if (query.To is { } to)
+        {
+            wheres.Add("e.last_copied_at <= $to");
+            cmd.Parameters.AddWithValue("$to", Iso(to));
+        }
 
         if (wheres.Count > 0)
             cmd.CommandText += " AND " + string.Join(" AND ", wheres);
 
-        cmd.CommandText += hasSearch
-            ? " ORDER BY rank LIMIT $limit OFFSET $offset;"
-            : " ORDER BY e.last_copied_at DESC LIMIT $limit OFFSET $offset;";
+        // A text search ranks by relevance; plain listings honor the sort choice.
+        var order = hasSearch
+            ? "rank"
+            : "e.last_copied_at " + (query.Sort == ClipSort.OldestFirst ? "ASC" : "DESC");
+        cmd.CommandText += $" ORDER BY {order} LIMIT $limit OFFSET $offset;";
         cmd.Parameters.AddWithValue("$limit", query.Limit);
         cmd.Parameters.AddWithValue("$offset", query.Offset);
 
@@ -121,6 +133,34 @@ public sealed class ClipRepository : IClipRepository
             results.Add(entry);
         }
         return results;
+    }
+
+    public ClipCounts GetCounts()
+    {
+        using var conn = _db.OpenConnection();
+
+        var byType = new Dictionary<ClipType, int>();
+        int total = 0, favorites = 0;
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT type, COUNT(*) FROM clipboard_entries GROUP BY type;";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var count = (int)reader.GetInt64(1);
+                byType[TypeFromDb(reader.GetString(0))] = count;
+                total += count;
+            }
+        }
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT COUNT(*) FROM clipboard_entries WHERE favorite = 1;";
+            favorites = (int)(long)cmd.ExecuteScalar()!;
+        }
+
+        return new ClipCounts(total, favorites, byType);
     }
 
     public ClipEntry? GetById(long id)

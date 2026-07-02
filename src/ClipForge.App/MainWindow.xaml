@@ -1,139 +1,449 @@
 <Window x:Class="ClipForge.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ClipForge" Height="620" Width="960"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="ClipForge" Height="720" Width="1180" MinHeight="480" MinWidth="900"
+        WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="False"
         WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/Assets/ClipForge.ico"
-        Background="#141416">
+        Background="#0E0E11" Foreground="#ECECEC"
+        FontFamily="Segoe UI" TextOptions.TextFormattingMode="Ideal">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="46" ResizeBorderThickness="6"
+                            GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
     <Window.Resources>
-        <SolidColorBrush x:Key="Fg" Color="#EDEDED"/>
-        <SolidColorBrush x:Key="Muted" Color="#8A8A8E"/>
-        <SolidColorBrush x:Key="Panel" Color="#1E1E20"/>
-        <SolidColorBrush x:Key="Accent" Color="#E23B3B"/>
+        <!-- Palette, caption buttons, pill buttons, scrollbars and date fields
+             live in App.xaml so the Settings window shares them. Only the styles
+             unique to the main window are defined here. -->
+
+        <!-- Small round icon button (star, more) -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bg" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#2E2E36"/>
+                                <Setter Property="Foreground" Value="{StaticResource Fg}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Sidebar rows -->
+        <Style x:Key="SidebarItem" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource Fg}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bg" CornerRadius="8" Background="Transparent" Padding="10,9">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#1F1F25"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="{StaticResource CardSelBg}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Clip cards -->
+        <Style x:Key="ClipCard" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" CornerRadius="10" Background="{StaticResource Card}"
+                                BorderBrush="Transparent" BorderThickness="1.5" Padding="12,10">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource CardHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource CardSelBg}"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Sort dropdown -->
+        <Style x:Key="ComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource Fg}"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bg" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#2A2A33"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SortCombo" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource ComboItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="bg" Background="Transparent" CornerRadius="6" Padding="10,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ContentPresenter Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  VerticalAlignment="Center"/>
+                                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="9"
+                                                           Margin="8,1,0,0" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bg" Property="Background" Value="#1F1F25"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False" StaysOpen="False">
+                                <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}"
+                                        BorderThickness="1" CornerRadius="8" Margin="0,4,0,0" Padding="4"
+                                        MinWidth="140">
+                                    <StackPanel IsItemsHost="True"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
-    <Grid Margin="12">
+    <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="46"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Top bar -->
-        <Grid Grid.Row="0" Margin="0,0,0,12">
+        <!-- Custom title bar -->
+        <Grid Grid.Row="0" Background="{StaticResource WindowBg}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0" VerticalAlignment="Center">
-                <Image Source="pack://application:,,,/Assets/logo.png" Width="28" Height="28"/>
-                <TextBlock Text="ClipForge" Foreground="{StaticResource Fg}" FontSize="16"
-                           FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                <Image Source="pack://application:,,,/Assets/logo.png" Width="22" Height="22"/>
+                <TextBlock Text="ClipForge" Foreground="{StaticResource Fg}" FontSize="14"
+                           FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
-            <TextBox Grid.Column="1"
-                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=150}"
-                     FontSize="15" Padding="8,6" Background="{StaticResource Panel}"
-                     Foreground="{StaticResource Fg}" BorderThickness="0"
-                     VerticalContentAlignment="Center"
-                     ToolTip="Search clipboard history"/>
-            <CheckBox Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center"
-                      Content="Pause" Foreground="{StaticResource Muted}"
-                      IsChecked="{Binding IsPaused}"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="MinimizeButton_Click"/>
+                <Button Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="MaximizeButton_Click"/>
+                <Button Style="{StaticResource CaptionCloseButton}" Content="&#xE8BB;" Click="CloseButton_Click"/>
+            </StackPanel>
         </Grid>
 
-        <!-- Body: sidebar + list + details -->
-        <Grid Grid.Row="1">
+        <!-- Search + Pause -->
+        <Grid Grid.Row="1" Margin="16,6,16,10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="1.4*"/>
-                <ColumnDefinition Width="12"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="9"
+                    BorderBrush="{StaticResource Border}" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    <Grid Grid.Column="1">
+                        <TextBlock Text="Search clips..." Foreground="{StaticResource Muted}" Margin="10,0,0,0"
+                                   VerticalAlignment="Center" IsHitTestVisible="False"
+                                   Visibility="{Binding SearchText, Converter={StaticResource EmptyStrToVis}}"/>
+                        <TextBox x:Name="SearchBox"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=150}"
+                                 FontSize="14" Background="Transparent" Foreground="{StaticResource Fg}"
+                                 CaretBrush="{StaticResource Fg}" BorderThickness="0" Padding="10,9"
+                                 VerticalContentAlignment="Center"/>
+                    </Grid>
+                </Grid>
+            </Border>
+            <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="9" Margin="10,0,0,0"
+                    BorderBrush="{StaticResource Border}" BorderThickness="1">
+                <CheckBox VerticalAlignment="Center" Margin="12,0" Foreground="{StaticResource Muted}"
+                          IsChecked="{Binding IsPaused}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE769;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   VerticalAlignment="Center" Margin="0,0,7,0"/>
+                        <TextBlock Text="Pause" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </CheckBox>
+            </Border>
+        </Grid>
+
+        <!-- Date filter bar -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="16,0,16,12" VerticalAlignment="Center">
+            <TextBlock Text="From" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <DatePicker SelectedDate="{Binding FromDate}" Width="130"/>
+            <TextBlock Text="To" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="14,0,6,0"/>
+            <DatePicker SelectedDate="{Binding ToDate}" Width="130"/>
+            <Button Content="Clear" Style="{StaticResource PillButton}" Margin="14,0,0,0" Padding="12,6"
+                    Command="{Binding ClearDateFilterCommand}"/>
+        </StackPanel>
+
+        <!-- Body: sidebar + list + details -->
+        <Grid Grid.Row="3" Margin="16,0,16,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="210"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="1.5*"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="1.1*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Left sidebar -->
+            <!-- Sidebar -->
             <DockPanel Grid.Column="0">
-                <Button DockPanel.Dock="Bottom" Content="⚙  Settings" HorizontalContentAlignment="Left"
-                        Padding="10,8" Margin="0,8,0,0" BorderThickness="0"
-                        Background="{StaticResource Panel}" Foreground="{StaticResource Fg}"
-                        Command="{Binding OpenSettingsCommand}"/>
+                <Button DockPanel.Dock="Bottom" Style="{StaticResource PillButton}" HorizontalContentAlignment="Left"
+                        Margin="0,10,0,0" Command="{Binding OpenSettingsCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center"/>
+                        <TextBlock Text="Settings" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <ListBox ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}"
-                         Background="{StaticResource Panel}" BorderThickness="0"
-                         Foreground="{StaticResource Fg}">
+                         Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource SidebarItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Label}" Padding="6,8" Foreground="{StaticResource Fg}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="ico" Grid.Column="0" Text="{Binding Icon}"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                           Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="lbl" Grid.Column="1" Text="{Binding Label}" Margin="12,0,0,0"
+                                           Foreground="{StaticResource Fg}" VerticalAlignment="Center" FontSize="13"/>
+                                <Border Grid.Column="2" x:Name="badge" Background="{StaticResource BadgeBg}"
+                                        CornerRadius="9" Padding="8,2" MinWidth="26" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Count}" Foreground="{StaticResource Muted}"
+                                               FontSize="11" HorizontalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                    <Setter TargetName="ico" Property="Foreground" Value="{StaticResource Accent}"/>
+                                    <Setter TargetName="lbl" Property="Foreground" Value="{StaticResource Accent}"/>
+                                    <Setter TargetName="lbl" Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </DockPanel>
 
-            <ListBox Grid.Column="2" x:Name="EntriesList"
-                     ItemsSource="{Binding Entries}"
-                     SelectedItem="{Binding SelectedEntry}"
-                     Background="{StaticResource Panel}" BorderThickness="0"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Border Padding="8,6" Margin="0,1">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Type}" FontSize="11"
-                                               Foreground="{StaticResource Accent}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="  •  " Foreground="{StaticResource Muted}"/>
-                                    <TextBlock Text="{Binding SourceApp}" FontSize="11"
-                                               Foreground="{StaticResource Muted}"/>
-                                    <TextBlock Text="  ★" Foreground="Gold" FontSize="11"
-                                               Visibility="{Binding Favorite, Converter={StaticResource BoolToVis}}"/>
+            <!-- Clip list -->
+            <DockPanel Grid.Column="2">
+                <Grid DockPanel.Dock="Top" Margin="2,0,2,10">
+                    <TextBlock VerticalAlignment="Center" Foreground="{StaticResource Muted}" FontSize="13">
+                        <Run Text="{Binding VisibleCount, Mode=OneWay}"/><Run Text=" clips"/>
+                    </TextBlock>
+                    <ComboBox HorizontalAlignment="Right" Style="{StaticResource SortCombo}"
+                              ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}"/>
+                </Grid>
+                <ListBox x:Name="EntriesList"
+                         ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}"
+                         Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource ClipCard}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Icon / thumbnail -->
+                                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="8"
+                                        Background="#101014" VerticalAlignment="Top" Margin="0,0,12,0">
+                                    <Grid>
+                                        <TextBlock Text="{Binding Type, Converter={StaticResource TypeToIcon}}"
+                                                   FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                                   Foreground="{StaticResource Accent}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Visibility="{Binding ThumbnailPath, Converter={StaticResource EmptyStrToVis}}"/>
+                                        <Image Source="{Binding ThumbnailPath, Converter={StaticResource PathToImage}}"
+                                               Stretch="UniformToFill"
+                                               Visibility="{Binding ThumbnailPath, Converter={StaticResource StrToVis}}"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Text content -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding LastCopiedAt, Converter={StaticResource LocalDateTime}}"
+                                                   FontSize="11" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="  &#x2022;  " Foreground="{StaticResource Muted}" FontSize="11"/>
+                                        <TextBlock Text="{Binding Type}" FontSize="11"
+                                                   Foreground="{StaticResource Accent}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="  &#x2022;  " Foreground="{StaticResource Muted}" FontSize="11"/>
+                                        <TextBlock Text="{Binding SourceApp}" FontSize="11" Foreground="{StaticResource Muted}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Content}" Foreground="{StaticResource Fg}" FontSize="13"
+                                               TextTrimming="CharacterEllipsis" MaxHeight="42" Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <Image Source="{Binding ThumbnailPath, Converter={StaticResource PathToImage}}"
-                                       MaxHeight="70" HorizontalAlignment="Left" Margin="0,4,0,2"
-                                       Visibility="{Binding ThumbnailPath, Converter={StaticResource StrToVis}}"/>
-                                <TextBlock Text="{Binding Content}" Foreground="{StaticResource Fg}"
-                                           TextTrimming="CharacterEllipsis" MaxHeight="40"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+
+                                <!-- Row actions -->
+                                <StackPanel Grid.Column="2" VerticalAlignment="Top" Orientation="Horizontal">
+                                    <Button Content="{Binding Favorite, Converter={StaticResource FavoriteToIcon}}"
+                                            Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Favorite}" Value="True">
+                                                        <Setter Property="Foreground" Value="Gold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button x:Name="MoreBtn" Style="{StaticResource IconButton}" Content="&#xE712;"
+                                            Click="MoreButton_Click"
+                                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Copy"
+                                                          Command="{Binding PlacementTarget.Tag.CopyCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding}"/>
+                                                <MenuItem Header="Favorite"
+                                                          Command="{Binding PlacementTarget.Tag.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding}"/>
+                                                <MenuItem Header="Delete"
+                                                          Command="{Binding PlacementTarget.Tag.DeleteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding}"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
 
             <!-- Details panel -->
-            <Border Grid.Column="4" Background="{StaticResource Panel}" Padding="14">
+            <Border Grid.Column="4" Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
                 <Grid>
                     <TextBlock Text="Select an entry" Foreground="{StaticResource Muted}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                Visibility="{Binding SelectedEntry, Converter={StaticResource NullToVis}}"/>
-                    <StackPanel DataContext="{Binding SelectedEntry}">
-                        <TextBlock Text="{Binding Type}" Foreground="{StaticResource Accent}"
-                                   FontWeight="Bold" FontSize="13"/>
+                    <StackPanel DataContext="{Binding SelectedEntry}"
+                                Visibility="{Binding Converter={StaticResource NotNullToVis}}">
                         <Image Source="{Binding ThumbnailPath, Converter={StaticResource PathToImage}}"
-                               MaxHeight="240" HorizontalAlignment="Left" Margin="0,8"
+                               MaxHeight="220" HorizontalAlignment="Center" Margin="0,0,0,14"
                                Visibility="{Binding ThumbnailPath, Converter={StaticResource StrToVis}}"/>
-                        <ScrollViewer MaxHeight="260" Margin="0,8" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="{Binding Type, Converter={StaticResource TypeToIcon}}"
+                                       FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                       Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource Accent}"
+                                       FontWeight="Bold" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ScrollViewer MaxHeight="200" Margin="0,0,0,14" VerticalScrollBarVisibility="Auto">
                             <TextBox Text="{Binding Content, Mode=OneWay}" IsReadOnly="True"
                                      TextWrapping="Wrap" Background="Transparent" BorderThickness="0"
-                                     Foreground="{StaticResource Fg}"/>
+                                     Foreground="{StaticResource Fg}" FontSize="13"/>
                         </ScrollViewer>
-                        <TextBlock Foreground="{StaticResource Muted}" FontSize="12">
-                            <Run Text="Source: "/><Run Text="{Binding SourceApp}"/>
-                        </TextBlock>
-                        <TextBlock Foreground="{StaticResource Muted}" FontSize="12">
-                            <Run Text="Window: "/><Run Text="{Binding WindowTitle}"/>
-                        </TextBlock>
-                        <TextBlock Foreground="{StaticResource Muted}" FontSize="12">
-                            <Run Text="Copied "/><Run Text="{Binding CopyCount}"/><Run Text=" time(s)"/>
-                        </TextBlock>
-                        <TextBlock Foreground="{StaticResource Muted}" FontSize="12">
-                            <Run Text="Last: "/><Run Text="{Binding LastCopiedAt}"/>
-                        </TextBlock>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                            <Button Content="Copy" Padding="12,4" Margin="0,0,8,0"
-                                    Command="{Binding DataContext.CopySelectedCommand, ElementName=EntriesList}"/>
-                            <Button Content="★ Favorite" Padding="12,4" Margin="0,0,8,0"
-                                    Command="{Binding DataContext.ToggleFavoriteCommand, ElementName=EntriesList}"/>
-                            <Button Content="Delete" Padding="12,4"
-                                    Command="{Binding DataContext.DeleteSelectedCommand, ElementName=EntriesList}"/>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Source" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,16,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SourceApp}" Foreground="{StaticResource Fg}" FontSize="12" Margin="0,0,0,4" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Window" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,16,4"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding WindowTitle}" Foreground="{StaticResource Fg}" FontSize="12" Margin="0,0,0,4" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Copied" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,16,4"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Foreground="{StaticResource Fg}" FontSize="12" Margin="0,0,0,4">
+                                <Run Text="{Binding CopyCount, Mode=OneWay}"/><Run Text=" time(s)"/>
+                            </TextBlock>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Last" Foreground="{StaticResource Muted}" FontSize="12"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding LastCopiedAt, Converter={StaticResource LocalDateTime}}" Foreground="{StaticResource Fg}" FontSize="12"/>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <Button Content="Copy" Style="{StaticResource AccentPillButton}" Margin="0,0,8,0"
+                                    Command="{Binding DataContext.CopyCommand, ElementName=EntriesList}" CommandParameter="{Binding}"/>
+                            <Button Style="{StaticResource PillButton}" Margin="0,0,8,0"
+                                    Command="{Binding DataContext.ToggleFavoriteCommand, ElementName=EntriesList}" CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Favorite" Margin="7,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource PillButton}"
+                                    Command="{Binding DataContext.DeleteCommand, ElementName=EntriesList}" CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Delete" Margin="7,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </Grid>

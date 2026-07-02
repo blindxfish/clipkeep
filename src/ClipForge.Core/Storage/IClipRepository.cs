@@ -18,6 +18,9 @@ public interface IClipRepository
 
     IReadOnlyList<ClipEntry> Query(ClipQuery query);
 
+    /// <summary>Entry tallies for the sidebar badges (total, favorites, per type).</summary>
+    ClipCounts GetCounts();
+
     ClipEntry? GetById(long id);
 
     /// <summary>Look up an entry by its content hash, or null if none exists.</summary>

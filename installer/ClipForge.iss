@@ -2,10 +2,10 @@
 ; self-contained single-file publish in dist\portable.
 ;
 ; Build:  "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ClipForge.iss
-; Output: dist\ClipForge-Setup-<version>.exe
+; Output: installer\ClipForge-Setup-<version>.exe
 
 #define MyAppName "ClipForge"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "ClipForge"
 #define MyAppExeName "ClipForge.exe"
 
@@ -20,7 +20,7 @@ DefaultGroupName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ; Per-user install — no admin elevation required for a tray utility.
 PrivilegesRequired=lowest
-OutputDir=..\dist
+OutputDir=.
 OutputBaseFilename=ClipForge-Setup-{#MyAppVersion}
 SetupIconFile=..\src\ClipForge.App\Assets\ClipForge.ico
 Compression=lzma2/max
